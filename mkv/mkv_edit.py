@@ -1,12 +1,62 @@
 #!/usr/bin/env python3
 import json
 import subprocess
+import unicodedata
 import os
 import sys
 from typing import List, Dict, Any, Optional
 
-# ... (其他函数 check_mkvtoolnix, get_mkv_info, display_tracks, select_tracks_to_keep 保持不变) ...
-# display_tracks 确保存在，这里省略以减少篇幅，实际代码中需要它
+def get_display_width(text: str) -> int:
+    """计算字符串在终端的显示宽度 (全角计为2, 半角计为1)"""
+    width = 0
+    for char in text:
+        # 'F': Fullwidth, 'W': Wide -> 计为2
+        # 'H': Halfwidth, 'Na': Narrow -> 计为1
+        # 'A': Ambiguous -> 在很多终端中也表现为宽字符，保守计为2，或根据实际情况调整
+        # 'N': Neutral -> 通常计为1
+        char_width_type = unicodedata.east_asian_width(char)
+        if char_width_type in ('F', 'W', 'A'): # 将 'A' (Ambiguous) 也视为宽字符
+            width += 2
+        else: # 'H', 'Na', 'N' (Neutral)
+            width += 1
+    return width
+
+def truncate_to_display_width(text: str, max_width: int, placeholder: str = "...") -> str:
+    current_text_width = get_display_width(text)
+    placeholder_width = get_display_width(placeholder)
+
+    if current_text_width <= max_width:
+        return text
+
+    # 如果原始文本已超出，且最大宽度连占位符都放不下
+    if max_width < placeholder_width:
+        # 尝试返回占位符的一部分，或者如果连一个字符都放不下就返回空
+        truncated_placeholder = ""
+        current_placeholder_width = 0
+        for char in placeholder:
+            char_w = get_display_width(char)
+            if current_placeholder_width + char_w <= max_width:
+                truncated_placeholder += char
+                current_placeholder_width += char_w
+            else:
+                break
+        return truncated_placeholder # 这可能为空字符串
+
+    # 正常截断流程：为占位符留空间
+    effective_max_width_for_text = max_width - placeholder_width
+    
+    truncated_text_chars = []
+    current_truncated_width = 0
+    for char in text:
+        char_disp_width = get_display_width(char)
+        if current_truncated_width + char_disp_width <= effective_max_width_for_text:
+            truncated_text_chars.append(char)
+            current_truncated_width += char_disp_width
+        else:
+            break
+            
+    return "".join(truncated_text_chars) + placeholder
+
 
 def check_mkvtoolnix():
     """检查 mkvmerge 是否可用"""
@@ -67,12 +117,16 @@ def display_tracks(tracks_data: List[Dict[str, Any]], title: str = "轨道信息
         is_default = track['properties'].get('default_track', False)
 
         codec_display = codec_orig[:w_codec-3] + "..." if len(codec_orig) > w_codec else codec_orig
-        name_display = name_orig[:w_name-3] + "..." if len(name_orig) > w_name else name_orig
+        # name_display = name_orig[:w_name-3] + "..." if len(name_orig) > w_name else name_orig
         default_display = '是' if is_default else '否'
+
+        name_display_val = truncate_to_display_width(name_orig, w_name, "...")
+        name_padding = " " * (w_name - get_display_width(name_display_val))
+        name_display = name_display_val + name_padding
 
         print(
             f"{i+1:<{w_num}} | {track_type:<{w_type}} | {track_id:<{w_id}} | {lang:<{w_lang}} | "
-            f"{codec_display:<{w_codec}} | {name_display:<{w_name}} | {default_display:<{w_def}}"
+            f"{codec_display:<{w_codec}} | {name_display} | {default_display:<{w_def}}"
         )
     print("-" * len(separator))
 
