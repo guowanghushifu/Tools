@@ -46,10 +46,10 @@ def display_tracks(tracks_data: List[Dict[str, Any]], title: str = "轨道信息
         return
 
     print(f"\n--- {title} ---")
-    w_num = 3; w_type = 10; w_id = 3; w_lang = 5; w_codec = 18; w_name = 24; w_def = 6
+    w_num = 3; w_type = 10; w_id = 3; w_lang = 5; w_codec = 18; w_name = 30; w_def = 6
     header = (
-        f"{'编号':<{w_num}} | {'类型':<{w_type}} | {'ID':<{w_id}} | {'语言':<{w_lang}} | "
-        f"{'编解码':<{w_codec}} | {'名称':<{w_name}} | {'默认轨':<{w_def}}"
+        f"{'编号':<{w_num-1}}| {'类型':<{w_type-2}} | {'ID':<{w_id}} | {'语言':<{w_lang-2}} | "
+        f"{'编解码':<{w_codec-3}} | {'名称':<{w_name-2}} | {'默认轨':<{w_def-3}}"
     )
     print(header)
     separator = (
