@@ -425,7 +425,7 @@ def main():
 
     base, ext = os.path.splitext(mkv_filepath)
     output_filepath_base = f"{base}_modified"
-    output_filepath = f"{output_filepath_base}{ext}"
+    output_filepath = f"{output_filepath_base}.mkv"
     
     count = 1
     while os.path.exists(output_filepath):
